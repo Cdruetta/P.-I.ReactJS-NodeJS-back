@@ -1,0 +1,17 @@
+[
+  {
+    "nombre": "monitor",
+    "precio": 40000,
+    "id": 1
+  },
+  {
+    "nombre": "CPU Ryzen",
+    "precio": 15000,
+    "id": 2
+  },
+  {
+    "nombre": "mouse led",
+    "precio": 25000,
+    "id": 3
+  }
+]
