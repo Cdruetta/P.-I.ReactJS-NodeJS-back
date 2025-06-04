@@ -1,83 +1,80 @@
-const fs = require('fs');
-const path = require('path');
-const filePath = path.join(__dirname, '../db/users.json');
+const { Usuario } = require('../models');
 
-// Leer usuarios desde el archivo
-const leerUsuarios = () => {
-    const data = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '[]';
-    return JSON.parse(data);
-};
-
-let usuarios = leerUsuarios();
-console.log("usuarios", usuarios);
-
-// Guardar usuarios en el archivo
-const escribirUsuarios = (usuarios) => {
-    fs.writeFileSync(filePath, JSON.stringify(usuarios, null, 2));
-};
-
-// GET /usuarios - obtener todos los usuarios
-const getUsuarios = (req, res) => {
-    res.json({ data: usuarios, status: 200, mensaje: 'Lista de usuarios encontrada' });
-};
-
-// GET /usuarios/:id - obtener usuario por ID
-const getUsuarioById = (req, res) => {
-    const usuario = usuarios.find(u => u.id === parseInt(req.params.id));
-    if (!usuario) return res.status(404).json({ status: 404, mensaje: 'Usuario no encontrado' });
-
-    res.json({ data: usuario, status: 201, mensaje: 'Usuario encontrado' });
-};
-
-// POST /usuarios - crear nuevo usuario
-const createUsuario = (req, res) => {
-    console.log('BODY:', req.body);
-    const { nombre, email, edad } = req.body;
-    const nuevoUsuario = {
-        id: usuarios.length + 1,
-        nombre,
-        email,
-        edad
-    };
-
-    if (!email || email.replace(/\s/g, '') === '') {
-    return res.status(400).json({ status: 404, mensaje: 'El campo "email" es obligatorio' });
-}
-    const emailExistente = usuarios.find(u => u.email === email); 
-    if (emailExistente){
-        return res.status(404).json({ status: 404, message : 'El email ya existe'})
+// Obtener todos los usuarios
+const getUsuarios = async (req, res) => {
+    try {
+        const usuarios = await Usuario.findAll();
+        res.json({ status: 200, data: usuarios });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al obtener usuarios', error: error.message });
     }
-
-    usuarios.push(nuevoUsuario);
-    escribirUsuarios(usuarios);
-    res.status(201).json({ data: nuevoUsuario, status: 201, mensaje: 'Usuario creado' });
 };
 
-// PUT /usuarios/:id - actualizar un usuario
-const updateUsuario = (req, res) => {
-    const usuario = usuarios.find(u => u.id === parseInt(req.params.id));
-    if (!usuario) return res.status(404).json({ status: 404, mensaje: 'Usuario no encontrado' });
+// Obtener usuario por ID
+const getUsuarioById = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.params.id);
+        if (!usuario) {
+            return res.status(404).json({ status: 404, message: 'Usuario no encontrado' });
+        }
+        res.json({ status: 200, data: usuario });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al obtener usuario', error: error.message });
+    }
+};
 
+// Crear nuevo usuario
+const createUsuario = async (req, res) => {
     const { nombre, email, edad } = req.body;
-    usuario.nombre = nombre || usuario.nombre;
-    usuario.email = email || usuario.email;
-    usuario.edad = edad || usuario.edad;
+    try {
+        if (!nombre || !email || !edad) {
+            return res.status(400).json({ status: 400, message: 'Faltan campos obligatorios' });
+        }
 
-    escribirUsuarios(usuarios);
-    res.json({ data: usuario, status: 200, mensaje: 'Usuario actualizado' });
+        const nuevoUsuario = await Usuario.create({ nombre, email, edad });
+        res.status(201).json({ status: 201, data: nuevoUsuario, message: 'Usuario creado exitosamente' });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al crear usuario', error: error.message });
+    }
 };
 
-// DELETE /usuarios/:id - eliminar un usuario
-const deleteUsuario = (req, res) => {
-    const usuario = usuarios.find(u => u.id === parseInt(req.params.id));
-    if (!usuario) return res.status(404).json({ status: 404, mensaje: 'Usuario no encontrado' });
+// Editar usuario
+const updateUsuario = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.params.id);
+        if (!usuario) {
+            return res.status(404).json({ status: 404, message: 'Usuario no encontrado' });
+        }
 
-    usuarios = usuarios.filter(u => u.id !== usuario.id);
-    escribirUsuarios(usuarios);
-    res.json({ status: 200, mensaje: 'Usuario eliminado' });
+        const { nombre, email, edad } = req.body;
+        usuario.nombre = nombre || usuario.nombre;
+        usuario.email = email || usuario.email;
+        usuario.edad = edad || usuario.edad;
+
+        await usuario.save();
+
+        res.status(200).json({ status: 200, message: 'Usuario editado exitosamente', data: usuario });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al editar usuario', error: error.message });
+    }
 };
 
-// Exportar funciones
+// Eliminar usuario
+const deleteUsuario = async (req, res) => {
+    try {
+        const usuario = await Usuario.findByPk(req.params.id);
+        if (!usuario) {
+            return res.status(404).json({ status: 404, message: 'Usuario no encontrado' });
+        }
+
+        await usuario.destroy();
+
+        res.status(200).json({ status: 200, message: 'Usuario eliminado exitosamente' });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al eliminar usuario', error: error.message });
+    }
+};
+
 module.exports = {
     getUsuarios,
     getUsuarioById,

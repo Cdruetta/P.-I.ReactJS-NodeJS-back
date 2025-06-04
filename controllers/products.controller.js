@@ -1,21 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-const filePath = path.join(__dirname, '../db/products.json');
 const { Producto } = require('../models/');
-
-// Función para leer productos del archivo
-const leerProducts = () => {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data); 
-}
-
-let products = leerProducts();
-console.log("products", products);
-
-// Función para guardar los productos en el archivo
-const escribirProducts = (products) => {
-    fs.writeFileSync(filePath, JSON.stringify(products, null, 2));
-}
 
 // GET obtener un producto por id
 const getProductById = async (req, res) => {
@@ -54,28 +37,41 @@ const createProduct = async (req, res) => {
 }
 
 // PUT actualizar un producto
-const updateProduct = (req, res) => {
-    const product = products.find(item => item.id === parseInt(req.params.id));
-    if (!product) return res.json({ status: 404, mensaje: 'Producto no encontrado' });
+const updateProduct = async (req, res) => {
+    try {
+        const producto = await Producto.findByPk(req.params.id);
+        if (!producto) {
+            return res.status(404).json({ status: 404, message: 'Producto no encontrado' });
+        }
 
-    const { nombre, precio } = req.body;
-    product.nombre = nombre || product.nombre;
-    product.precio = precio || product.precio;
+        const { nombre, precio } = req.body;
 
-    escribirProducts(products);
-    res.json({ data: product, status: 200, mensaje: 'Producto actualizado' });
-}
+        producto.nombre = nombre || producto.nombre;
+        producto.precio = precio || producto.precio;
+
+        await producto.save();
+
+        res.status(200).json({ status: 200, message: 'Producto editado exitosamente', data: producto });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al editar producto', error: error.message });
+    }
+};
 
 // DELETE eliminar un producto
-const deleteProduct = (req, res) => {
-    const product = products.find(item => item.id === parseInt(req.params.id));
-    if (!product) return res.json({ status: 404, mensaje: 'Producto no encontrado' });
+const deleteProduct = async (req, res) => {
+    try {
+        const producto = await Producto.findByPk(req.params.id);
+        if (!producto) {
+            return res.status(404).json({ status: 404, message: 'Producto no encontrado' });
+        }
 
-    products = products.filter(item => item.id !== product.id);
-    escribirProducts(products);
+        await producto.destroy();
 
-    res.json({ status: 201, mensaje: 'Producto eliminado' });
-}
+        res.status(200).json({ status: 200, message: 'Producto eliminado exitosamente' });
+    } catch (error) {
+        res.status(500).json({ status: 500, message: 'Error al eliminar producto', error: error.message });
+    }
+};
 
 // Exportar los controladores
 module.exports = {
