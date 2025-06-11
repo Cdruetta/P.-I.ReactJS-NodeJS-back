@@ -3,6 +3,8 @@ const { Usuario } = require('../models');
 // Obtener todos los usuarios
 const getUsuarios = async (req, res) => {
     try {
+        console.log('Obteniendo todos los usuarios...');
+        
         const usuarios = await Usuario.findAll();
         res.json({ status: 200, data: usuarios });
     } catch (error) {
